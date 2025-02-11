@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 30px;
+        }
+        .chart-box {
+            width: 45%;
+            max-width: 500px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Admin Dashboard</h2>
+
+        <h3>Tool Requests</h3>
+        <table id="requestTable">
+            <thead>
+                <tr>
+                    <th>Tool</th>
+                    <th>Name</th>
+                    <th>Project ID</th>
+                    <th>Project Tag</th>
+                    <th>Date</th>
+                    <th>Comment</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="6">Loading...</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Tool Usage Statistics</h3>
+        <div class="charts-container">
+            <div class="chart-box">
+                <canvas id="stackedBarChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="toolUsageOverTime"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        //import { initializeApp } from "firebase/app";
+        //import { getAnalytics } from "firebase/analytics";
+        const firebaseConfig = {
+  apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
+  authDomain: "automation-tools-usage.firebaseapp.com",
+  projectId: "automation-tools-usage",
+  storageBucket: "automation-tools-usage.firebasestorage.app",
+  messagingSenderId: "883352092535",
+  appId: "1:883352092535:web:0c9dd2712b5d42b345ab72",
+  measurementId: "G-7T17NS1Z7X"
+};
+        firebase.initializeApp(firebaseConfig);
+        console.log(firebase ? "Firebase Loaded Successfully!" : "Firebase Failed to Load");
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        function loadRequests() {
+            db.collection("requests").get().then(snapshot => {
+                let tableBody = document.querySelector("#requestTable tbody");
+                tableBody.innerHTML = "";
+                let toolUsage = {};
+                let dateUsage = {};
+                snapshot.forEach(doc => {
+                    let data = doc.data();
+                    let row = `<tr>
+                        <td>${data.tool}</td>
+                        <td>${data.name}</td>
+                        <td>${data.projectId}</td>
+                        <td>${data.projectTag}</td>
+                        <td>${data.date}</td>
+                        <td>${data.comment || ''}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                    if (!toolUsage[data.tool]) toolUsage[data.tool] = {};
+                    toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
+                    let dateKey = new Date(data.date).toISOString().split("T")[0];
+                    if (!dateUsage[dateKey]) dateUsage[dateKey] = {};
+                    dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
+                });
+                renderCharts(toolUsage, dateUsage);
+            });
+        }
+
+        function renderCharts(toolUsage, dateUsage) {
+            let toolNames = Object.keys(toolUsage);
+            let tagNames = [...new Set([].concat(...toolNames.map(tool => Object.keys(toolUsage[tool]))))];
+            let datasets = tagNames.map(tag => ({
+                label: tag,
+                data: toolNames.map(tool => toolUsage[tool][tag] || 0),
+                backgroundColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+            }));
+            new Chart(document.getElementById("stackedBarChart"), {
+                type: "bar",
+                data: { labels: toolNames, datasets },
+                options: { scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+            });
+            let sortedDates = Object.keys(dateUsage).sort();
+            let tools = [...new Set([].concat(...sortedDates.map(date => Object.keys(dateUsage[date]))))];
+            let lineDatasets = tools.map(tool => ({
+                label: tool,
+                data: sortedDates.map(date => dateUsage[date][tool] || 0),
+                borderColor: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+                fill: false
+            }));
+            new Chart(document.getElementById("toolUsageOverTime"), {
+                type: "line",
+                data: { labels: sortedDates, datasets: lineDatasets },
+                options: { scales: { x: { title: { display: true, text: "Date" } }, y: { beginAtZero: true } } }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", loadRequests);
+    </script>
+    <button onclick="window.location.href='Home.html'">Go to Home Page</button>
+</body>
+</html>
