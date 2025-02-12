@@ -84,6 +84,8 @@
             </select>
             <label for="date">Request Date:</label>
             <input type="date" id="date" required>
+            <label for="Comment">Comment:</label>
+            <input type="text" id="Comment" placeholder="Enter all details required to run automation like path etc." required>
             <button type="submit">Submit Request</button>
         </form>
     </div>
@@ -130,6 +132,7 @@
             let projectId = document.getElementById("projectId").value;
             let projectTag = document.getElementById("projectTag").value;
             let date = document.getElementById("date").value;
+            let Comment = document.getElementById("Comment").value;
             
             db.collection("requests").add({ tool, name, projectId, projectTag, date })
                 .then(() => {
