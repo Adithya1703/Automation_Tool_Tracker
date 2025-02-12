@@ -134,7 +134,7 @@
             let date = document.getElementById("date").value;
             let Comment = document.getElementById("Comment").value;
             
-            db.collection("requests").add({ tool, name, projectId, projectTag, date })
+            db.collection("requests").add({ tool, name, projectId, projectTag, date, Comment })
                 .then(() => {
                     alert("Request submitted successfully!");
                     document.getElementById("requestForm").reset();
