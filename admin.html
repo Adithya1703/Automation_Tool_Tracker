@@ -98,44 +98,44 @@
         }
 
         .filter-container {
-    margin-bottom: 10px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr); /* Ensures equal width columns */
-    align-items: bottom; /* Align items at the start */
-    gap: 10px;
-}
+            margin-bottom: 10px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Ensures equal width columns */
+            align-items: bottom; /* Align items at the start */
+            gap: 10px;
+        }
 
-.filter-item {
-    display: flex;
-    flex-direction: column;
-}
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+        }
 
-.filter-label {
-    line-height: 1;
-    margin-bottom: 4px;
-}
+        .filter-label {
+            line-height: 1;
+            margin-bottom: 4px;
+        }
 
-.filter-input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: inherit;
-    box-sizing: border-box; /* Ensures padding is included in the element's total width and height */
-}
+        .filter-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: inherit;
+            box-sizing: border-box; /* Ensures padding is included in the element's total width and height */
+        }
 
-.filter-button {
-    padding: 6px 12px;
-    border: 1px solid #007bff;
-    border-radius: 4px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    font-size: inherit;
-    height: 36px;
-    align-self: bottom; /* Center the button vertically within its grid cell */
-    margin-top: auto; /* Push the button to the bottom of its grid cell */
-}
+        .filter-button {
+            padding: 6px 12px;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: inherit;
+            height: 36px;
+            align-self: bottom; /* Center the button vertically within its grid cell */
+            margin-top: auto; /* Push the button to the bottom of its grid cell */
+        }
     </style>
 </head>
 <body>
@@ -176,12 +176,12 @@
             <table id="requestTable">
                 <thead>
                     <tr>
-                        <th>Tool</th>
-                        <th>Name</th>
-                        <th>Project ID</th>
-                        <th>Project Tag</th>
-                        <th>Date</th>
-                        <th>Manual Effort (Hours)</th>
+                        <th style="cursor: pointer;">Tool <span id="sortArrow-0"></span></th>
+                        <th style="cursor: pointer;">Name <span id="sortArrow-1"></span></th>
+                        <th style="cursor: pointer;">Project ID <span id="sortArrow-2"></span></th>
+                        <th style="cursor: pointer;">Project Tag <span id="sortArrow-3"></span></th>
+                        <th style="cursor: pointer;">Date <span id="sortArrow-4"></span></th>
+                        <th style="cursor: pointer;">Manual Effort (Hours) <span id="sortArrow-5"></span></th>
                         <th>Comment</th>
                     </tr>
                 </thead>
@@ -227,75 +227,143 @@
         ];
 
         function loadRequests() {
-            db.collection("requests").get()
-                .then(snapshot => {
-                    let tableBody = document.querySelector("#requestTable tbody");
-                    tableBody.innerHTML = ""; // Clear existing rows
+    db.collection("requests").get()
+        .then(snapshot => {
+            let tableBody = document.querySelector("#requestTable tbody");
+            tableBody.innerHTML = ""; // Clear existing rows
 
-                    let toolUsage = {};
-                    let manualEffort = {};
-                    let totalEffort = 0;
-                    const uniqueTools = new Set();
-                    const uniqueTags = new Set();
+            let toolUsage = {};
+            let manualEffort = {};
+            let totalEffort = 0;
+            const uniqueTools = new Set();
+            const uniqueTags = new Set();
 
-                    snapshot.forEach(doc => {
-                        let data = doc.data();
-                        const row = tableBody.insertRow();
+            snapshot.forEach(doc => {
+                let data = doc.data();
+                const row = tableBody.insertRow();
 
-                        const formattedDate = new Date(data.date).toLocaleDateString();
-                        let dateKey = new Date(data.date).toISOString().split("T")[0];
-                        dateUsage[dateKey] = dateUsage[dateKey] || {};
-                        dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
+                const formattedDate = new Date(data.date).toLocaleDateString();
+                let dateKey = new Date(data.date).toISOString().split("T")[0];
+                dateUsage[dateKey] = dateUsage[dateKey] || {};
+                dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
 
-                        row.insertCell().textContent = data.tool;
-                        row.insertCell().textContent = data.name;
-                        row.insertCell().textContent = data.projectId;
-                        row.insertCell().textContent = data.projectTag;
-                        row.insertCell().textContent = formattedDate;
-                        row.insertCell().textContent = data.manualEffort !== undefined ? parseFloat(data.manualEffort).toFixed(2) : 'N/A';
-                        const commentCell = row.insertCell();
-                        commentCell.textContent = data.Comment || '';
+                row.insertCell().textContent = data.tool;
+                row.insertCell().textContent = data.name;
+                row.insertCell().textContent = data.projectId;
+                row.insertCell().textContent = data.projectTag;
+                row.insertCell().textContent = formattedDate;
+                row.insertCell().textContent = data.manualEffort !== undefined ? parseFloat(data.manualEffort).toFixed(2) : 'N/A';
+                const commentCell = row.insertCell();
+                commentCell.textContent = data.Comment || '';
 
-                        toolUsage[data.tool] = toolUsage[data.tool] || {};
-                        toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
+                toolUsage[data.tool] = toolUsage[data.tool] || {};
+                toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
 
-                        manualEffort[data.tool] = (manualEffort[data.tool] || 0) + (Number(data.manualEffort) || 0);
-                        totalEffort += Number(data.manualEffort) || 0;
+                manualEffort[data.tool] = (manualEffort[data.tool] || 0) + (Number(data.manualEffort) || 0);
+                totalEffort += Number(data.manualEffort) || 0;
 
-                        uniqueTools.add(data.tool);
-                        uniqueTags.add(data.projectTag);
-                    });
+                uniqueTools.add(data.tool);
+                uniqueTags.add(data.projectTag);
+            });
 
-                    document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
-                    document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
+            document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
+            document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
 
-                    const filterToolSelect = document.getElementById('filterTool');
-                    uniqueTools.forEach(tool => {
-                        const option = document.createElement('option');
-                        option.value = tool;
-                        option.textContent = tool;
-                        filterToolSelect.appendChild(option);
-                    });
+            const filterToolSelect = document.getElementById('filterTool');
+            uniqueTools.forEach(tool => {
+                const option = document.createElement('option');
+                option.value = tool;
+                option.textContent = tool;
+                filterToolSelect.appendChild(option);
+            });
 
-                    const filterTagSelect = document.getElementById('filterProjectTag');
-                    uniqueTags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag;
-                        option.textContent = tag;
-                        filterTagSelect.appendChild(option);
-                    });
+            const filterTagSelect = document.getElementById('filterProjectTag');
+            uniqueTags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                filterTagSelect.appendChild(option);
+            });
 
-                    renderCharts(toolUsage);
-                    renderManualEffortChart(manualEffort);
-                    setupTableFiltering(); // Call the function to set up filtering
-                })
-                .catch(error => {
-                    console.error("Error loading requests:", error);
-                    document.querySelector("#requestTable tbody").innerHTML = `
-                        <tr><td colspan="7">Error loading data!</td></tr>
-                    `;
-                });
+            renderCharts(toolUsage);
+            renderManualEffortChart(manualEffort);
+            setupTableFiltering(); // Call the function to set up filtering
+            setupTableSorting(); // Call the function to set up sorting
+        })
+        .catch(error => {
+            console.error("Error loading requests:", error);
+            document.querySelector("#requestTable tbody").innerHTML = `
+                <tr><td colspan="7">Error loading data!</td></tr>
+            `;
+        });
+}
+
+function setupTableSorting() {
+    const requestTable = document.getElementById('requestTable');
+    const tableHead = requestTable.querySelector('thead');
+    const tableBody = requestTable.querySelector('tbody');
+    const headers = tableHead.querySelectorAll('th');
+
+    const sortDirections = Array.from(headers).map(() => 'asc');
+
+    headers.forEach((header, index) => {
+        header.addEventListener('click', () => {
+            sortTable(index);
+        });
+    });
+
+    function sortTable(columnIndex) {
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+        const currentSortDirection = sortDirections[columnIndex];
+        const isNumber = columnIndex === 5; // Manual Effort column
+        const isDate = columnIndex === 4;   // Date column
+
+        const sortedRows = rows.sort((rowA, rowB) => {
+            const cellA = rowA.cells[columnIndex].textContent.trim();
+            const cellB = rowB.cells[columnIndex].textContent.trim();
+
+            let valueA = cellA;
+            let valueB = cellB;
+
+            if (isNumber) {
+                valueA = parseFloat(valueA);
+                valueB = parseFloat(valueB);
+            } else if (isDate) {
+                valueA = new Date(valueA);
+                valueB = new Date(valueB);
+            }
+
+            if (currentSortDirection === 'asc') {
+                if (valueA < valueB) return -1;
+                if (valueA > valueB) return 1;
+                return 0;
+            } else {
+                if (valueA < valueB) return 1;
+                if (valueA > valueB) return -1;
+                return 0;
+            }
+        });
+
+        tableBody.innerHTML = '';
+        sortedRows.forEach(row => tableBody.appendChild(row));
+
+        // Toggle sort direction
+        sortDirections[columnIndex] = currentSortDirection === 'asc' ? 'desc' : 'asc';
+
+        // Update sorting arrows
+        headers.forEach((h, i) => {
+            const arrowSpan = document.getElementById(`sortArrow-${i}`);
+            if (arrowSpan) {
+                arrowSpan.textContent = ''; // Clear all arrows
+            }
+        });
+
+        const currentArrowSpan = document.getElementById(`sortArrow-${columnIndex}`);
+        if (currentArrowSpan) {
+            currentArrowSpan.textContent = currentSortDirection === 'asc' ? '▲' : '▼'; // Up for asc, Down for desc
         }
+    }
+}
 
         function renderManualEffortChart(manualEffort) {
             let toolNames = Object.keys(manualEffort);
@@ -480,7 +548,15 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", loadRequests);
+        document.addEventListener("DOMContentLoaded", () => {
+    loadRequests();
+    setupTableSorting();
+    sortTable(4); // Sort by Date (index 4) initially
+    const dateArrowSpan = document.getElementById(`sortArrow-4`);
+    if (dateArrowSpan) {
+        dateArrowSpan.textContent = '▼'; // Show descending arrow for Date
+    }
+});
     </script>
 </body>
 </html>
