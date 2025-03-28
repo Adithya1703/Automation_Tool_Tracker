@@ -93,15 +93,19 @@
 
         @media (max-width: 768px) {
             .chart-box {
-                max-width: 100%; /* Full width on smaller screens */
+                max-width: 100%;
+            }
+
+            .filter-container {
+                grid-template-columns: 1fr !important;
             }
         }
 
         .filter-container {
             margin-bottom: 10px;
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Ensures equal width columns */
-            align-items: bottom; /* Align items at the start */
+            grid-template-columns: repeat(5, 1fr);
+            align-items: end;
             gap: 10px;
         }
 
@@ -121,7 +125,7 @@
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: inherit;
-            box-sizing: border-box; /* Ensures padding is included in the element's total width and height */
+            box-sizing: border-box;
         }
 
         .filter-button {
@@ -133,8 +137,27 @@
             cursor: pointer;
             font-size: inherit;
             height: 36px;
-            align-self: bottom; /* Center the button vertically within its grid cell */
-            margin-top: auto; /* Push the button to the bottom of its grid cell */
+            align-self: end;
+            margin-top: auto;
+        }
+
+        .date-range-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .date-range-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .date-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: inherit;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -151,22 +174,30 @@
         <div class="table-wrapper">
             <div class="filter-container">
                 <div class="filter-item">
-                    <label for="filterTool" class="filter-label" id="filterTool-label">Filter Tool:</label>
+                    <label for="filterTool" class="filter-label">Filter Tool:</label>
                     <select id="filterTool" class="filter-input">
                         <option value="">All Tools</option>
                     </select>
                 </div>
                 
                 <div class="filter-item">
-                    <label for="filterProjectID" class="filter-label" id="filterProjectID-label">Filter Project ID:</label>
+                    <label for="filterProjectID" class="filter-label">Filter Project ID:</label>
                     <input type="text" id="filterProjectID" placeholder="Enter project ID" class="filter-input">
                 </div>
                 
                 <div class="filter-item">
-                    <label for="filterProjectTag" class="filter-label" id="filterProjectTag-label">Filter Project Tag:</label>
+                    <label for="filterProjectTag" class="filter-label">Filter Project Tag:</label>
                     <select id="filterProjectTag" class="filter-input">
                         <option value="">All Tags</option>
                     </select>
+                </div>
+                
+                <div class="filter-item date-range-container">
+                    <label class="filter-label">Date Range:</label>
+                    <div class="date-range-inputs">
+                        <input type="date" id="startDate" class="filter-input date-input" placeholder="Start Date">
+                        <input type="date" id="endDate" class="filter-input date-input" placeholder="End Date">
+                    </div>
                 </div>
                 
                 <div class="filter-item">
@@ -209,6 +240,11 @@
     </div>
 
     <script>
+        // Add these variables at the top of your script section, after the colorPalette definition
+        let manualEffortChartInstance = null;
+        let stackedBarChartInstance = null;
+        let toolUsageChartInstance = null;
+        // Firebase Configuration (Replace with your actual configuration)
         const firebaseConfig = {
             apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
             authDomain: "automation-tools-usage.firebaseapp.com",
@@ -221,157 +257,234 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let dateUsage = {}; // Declare dateUsage in the script scope
         const colorPalette = [
             "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40", "#C9CBCF"
         ];
 
-        function loadRequests() {
-    db.collection("requests").get()
-        .then(snapshot => {
-            let tableBody = document.querySelector("#requestTable tbody");
-            tableBody.innerHTML = ""; // Clear existing rows
+        function loadRequests(startDate = null, endDate = null) {
+            let query = db.collection("requests");
 
-            let toolUsage = {};
-            let manualEffort = {};
-            let totalEffort = 0;
-            const uniqueTools = new Set();
-            const uniqueTags = new Set();
-
-            snapshot.forEach(doc => {
-                let data = doc.data();
-                const row = tableBody.insertRow();
-
-                const formattedDate = new Date(data.date).toLocaleDateString();
-                let dateKey = new Date(data.date).toISOString().split("T")[0];
-                dateUsage[dateKey] = dateUsage[dateKey] || {};
-                dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
-
-                row.insertCell().textContent = data.tool;
-                row.insertCell().textContent = data.name;
-                row.insertCell().textContent = data.projectId;
-                row.insertCell().textContent = data.projectTag;
-                row.insertCell().textContent = formattedDate;
-                row.insertCell().textContent = data.manualEffort !== undefined ? parseFloat(data.manualEffort).toFixed(2) : 'N/A';
-                const commentCell = row.insertCell();
-                commentCell.textContent = data.Comment || '';
-
-                toolUsage[data.tool] = toolUsage[data.tool] || {};
-                toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
-
-                manualEffort[data.tool] = (manualEffort[data.tool] || 0) + (Number(data.manualEffort) || 0);
-                totalEffort += Number(data.manualEffort) || 0;
-
-                uniqueTools.add(data.tool);
-                uniqueTags.add(data.projectTag);
-            });
-
-            document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
-            document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
-
-            const filterToolSelect = document.getElementById('filterTool');
-            uniqueTools.forEach(tool => {
-                const option = document.createElement('option');
-                option.value = tool;
-                option.textContent = tool;
-                filterToolSelect.appendChild(option);
-            });
-
-            const filterTagSelect = document.getElementById('filterProjectTag');
-            uniqueTags.forEach(tag => {
-                const option = document.createElement('option');
-                option.value = tag;
-                option.textContent = tag;
-                filterTagSelect.appendChild(option);
-            });
-
-            renderCharts(toolUsage);
-            renderManualEffortChart(manualEffort);
-            setupTableFiltering(); // Call the function to set up filtering
-            setupTableSorting(); // Call the function to set up sorting
-        })
-        .catch(error => {
-            console.error("Error loading requests:", error);
-            document.querySelector("#requestTable tbody").innerHTML = `
-                <tr><td colspan="7">Error loading data!</td></tr>
-            `;
-        });
-}
-
-function setupTableSorting() {
-    const requestTable = document.getElementById('requestTable');
-    const tableHead = requestTable.querySelector('thead');
-    const tableBody = requestTable.querySelector('tbody');
-    const headers = tableHead.querySelectorAll('th');
-
-    const sortDirections = Array.from(headers).map(() => 'asc');
-
-    headers.forEach((header, index) => {
-        header.addEventListener('click', () => {
-            sortTable(index);
-        });
-    });
-
-    function sortTable(columnIndex) {
-        const rows = Array.from(tableBody.querySelectorAll('tr'));
-        const currentSortDirection = sortDirections[columnIndex];
-        const isNumber = columnIndex === 5; // Manual Effort column
-        const isDate = columnIndex === 4;   // Date column
-
-        const sortedRows = rows.sort((rowA, rowB) => {
-            const cellA = rowA.cells[columnIndex].textContent.trim();
-            const cellB = rowB.cells[columnIndex].textContent.trim();
-
-            let valueA = cellA;
-            let valueB = cellB;
-
-            if (isNumber) {
-                valueA = parseFloat(valueA);
-                valueB = parseFloat(valueB);
-            } else if (isDate) {
-                valueA = new Date(valueA);
-                valueB = new Date(valueB);
+            // Apply date range filtering if dates are provided
+            if (startDate && endDate) {
+                query = query
+                    .where('date', '>=', startDate.toISOString())
+                    .where('date', '<=', endDate.toISOString());
             }
 
-            if (currentSortDirection === 'asc') {
-                if (valueA < valueB) return -1;
-                if (valueA > valueB) return 1;
-                return 0;
-            } else {
-                if (valueA < valueB) return 1;
-                if (valueA > valueB) return -1;
-                return 0;
-            }
-        });
+            query.get()
+                .then(snapshot => {
+                    let tableBody = document.querySelector("#requestTable tbody");
+                    tableBody.innerHTML = ""; // Clear existing rows
 
-        tableBody.innerHTML = '';
-        sortedRows.forEach(row => tableBody.appendChild(row));
+                    let toolUsage = {};
+                    let manualEffort = {};
+                    let dateUsage = {}; // Reset dateUsage for each load
+                    let totalEffort = 0;
+                    const uniqueTools = new Set();
+                    const uniqueTags = new Set();
 
-        // Toggle sort direction
-        sortDirections[columnIndex] = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                    snapshot.forEach(doc => {
+                        let data = doc.data();
+                        const docDate = new Date(data.date);
 
-        // Update sorting arrows
-        headers.forEach((h, i) => {
-            const arrowSpan = document.getElementById(`sortArrow-${i}`);
-            if (arrowSpan) {
-                arrowSpan.textContent = ''; // Clear all arrows
-            }
-        });
+                        // Additional date range validation
+                        if ((startDate && docDate < startDate) || 
+                            (endDate && docDate > endDate)) {
+                            return; // Skip this document
+                        }
 
-        const currentArrowSpan = document.getElementById(`sortArrow-${columnIndex}`);
-        if (currentArrowSpan) {
-            currentArrowSpan.textContent = currentSortDirection === 'asc' ? '▲' : '▼'; // Up for asc, Down for desc
+                        const row = tableBody.insertRow();
+                        const formattedDate = docDate.toLocaleDateString();
+                        let dateKey = docDate.toISOString().split("T")[0];
+
+                        // Track date usage
+                        dateUsage[dateKey] = dateUsage[dateKey] || {};
+                        dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
+
+                        row.insertCell().textContent = data.tool;
+                        row.insertCell().textContent = data.name;
+                        row.insertCell().textContent = data.projectId;
+                        row.insertCell().textContent = data.projectTag;
+                        row.insertCell().textContent = formattedDate;
+                        row.insertCell().textContent = data.manualEffort !== undefined ? parseFloat(data.manualEffort).toFixed(2) : 'N/A';
+                        const commentCell = row.insertCell();
+                        commentCell.textContent = data.Comment || '';
+
+                        toolUsage[data.tool] = toolUsage[data.tool] || {};
+                        toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
+
+                        manualEffort[data.tool] = (manualEffort[data.tool] || 0) + (Number(data.manualEffort) || 0);
+                        totalEffort += Number(data.manualEffort) || 0;
+
+                        uniqueTools.add(data.tool);
+                        uniqueTags.add(data.projectTag);
+                    });
+
+                    // Populate filter dropdowns
+                    const filterToolSelect = document.getElementById('filterTool');
+                    filterToolSelect.innerHTML = '<option value="">All Tools</option>';
+                    uniqueTools.forEach(tool => {
+                        const option = document.createElement('option');
+                        option.value = tool;
+                        option.textContent = tool;
+                        filterToolSelect.appendChild(option);
+                    });
+
+                    const filterTagSelect = document.getElementById('filterProjectTag');
+                    filterTagSelect.innerHTML = '<option value="">All Tags</option>';
+                    uniqueTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag;
+                        option.textContent = tag;
+                        filterTagSelect.appendChild(option);
+                    });
+
+                    // Update summary
+                    document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
+                    document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
+
+                    // Render charts with filtered data
+                    renderCharts(toolUsage, dateUsage);
+                    renderManualEffortChart(manualEffort);
+                    setupTableFiltering(); // Reattach filtering
+                })
+                .catch(error => {
+                    console.error("Error loading requests:", error);
+                    document.querySelector("#requestTable tbody").innerHTML = `
+                        <tr><td colspan="7">Error loading data!</td></tr>
+                    `;
+                });
         }
-    }
-}
+
+        function setupTableFiltering() {
+            const filterButton = document.getElementById('filterButton');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+
+            // Additional filter inputs
+            const filterToolInput = document.getElementById('filterTool');
+            const filterProjectIDInput = document.getElementById('filterProjectID');
+            const filterProjectTagInput = document.getElementById('filterProjectTag');
+            const tableBody = document.querySelector("#requestTable tbody");
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+            filterButton.addEventListener('click', () => {
+                // Get start and end dates
+                const startDateValue = startDateInput.value;
+                const endDateValue = endDateInput.value;
+
+                let startDate = startDateValue ? new Date(startDateValue) : null;
+                let endDate = endDateValue ? new Date(endDateValue) : null;
+
+                // Set time to start of day for start date and end of day for end date
+                if (startDate) startDate.setHours(0, 0, 0, 0);
+                if (endDate) {
+                    endDate.setHours(23, 59, 59, 999);
+                }
+
+                // Reload requests with date range filter
+                loadRequests(startDate, endDate);
+
+                // Additional row filtering based on other inputs
+                const toolFilter = filterToolInput.value;
+                const projectIDFilter = filterProjectIDInput.value.toLowerCase();
+                const projectTagFilter = filterProjectTagInput.value;
+
+                rows.forEach(row => {
+                    const toolCell = row.cells[0].textContent;
+                    const projectIDCell = row.cells[2].textContent.toLowerCase();
+                    const projectTagCell = row.cells[3].textContent;
+                    const matchesTool = !toolFilter || toolFilter === "" || toolCell === toolFilter;
+                    const matchesProjectID = !projectIDFilter || projectIDCell.includes(projectIDFilter);
+                    const matchesProjectTag = !projectTagFilter || projectTagFilter === "" || projectTagCell === projectTagFilter;
+
+                    if (matchesTool && matchesProjectID && matchesProjectTag) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function setupTableSorting() {
+            const requestTable = document.getElementById('requestTable');
+            const tableHead = requestTable.querySelector('thead');
+            const tableBody = requestTable.querySelector('tbody');
+            const headers = tableHead.querySelectorAll('th');
+
+            const sortDirections = Array.from(headers).map(() => 'asc');
+
+            headers.forEach((header, index) => {
+                header.addEventListener('click', () => {
+                    sortTable(index);
+                });
+            });
+
+            function sortTable(columnIndex) {
+                const rows = Array.from(tableBody.querySelectorAll('tr'));
+                const currentSortDirection = sortDirections[columnIndex];
+                const isNumber = columnIndex === 5; // Manual Effort column
+                const isDate = columnIndex === 4;   // Date column
+
+                const sortedRows = rows.sort((rowA, rowB) => {
+                    const cellA = rowA.cells[columnIndex].textContent.trim();
+                    const cellB = rowB.cells[columnIndex].textContent.trim();
+
+                    let valueA = cellA;
+                    let valueB = cellB;
+
+                    if (isNumber) {
+                        valueA = parseFloat(valueA);
+                        valueB = parseFloat(valueB);
+                    } else if (isDate) {
+                        valueA = new Date(valueA);
+                        valueB = new Date(valueB);
+                    }
+
+                    if (currentSortDirection === 'asc') {
+                        if (valueA < valueB) return -1;
+                        if (valueA > valueB) return 1;
+                        return 0;
+                    } else {
+                        if (valueA < valueB) return 1;
+                        if (valueA > valueB) return -1;
+                        return 0;
+                    }
+                });
+
+                tableBody.innerHTML = '';
+                sortedRows.forEach(row => tableBody.appendChild(row));
+
+                // Toggle sort direction
+                sortDirections[columnIndex] = currentSortDirection === 'asc' ? 'desc' : 'asc';
+
+                // Update sorting arrows
+                headers.forEach((h, i) => {
+                    const arrowSpan = document.getElementById(`sortArrow-${i}`);
+                    if (arrowSpan) {
+                        arrowSpan.textContent = ''; // Clear all arrows
+                    }
+                });
+
+                const currentArrowSpan = document.getElementById(`sortArrow-${columnIndex}`);
+                if (currentArrowSpan) {
+                    currentArrowSpan.textContent = currentSortDirection === 'asc' ? '▲' : '▼'; // Up for asc, Down for desc
+                }
+            }
+        }
 
         function renderManualEffortChart(manualEffort) {
             let toolNames = Object.keys(manualEffort);
             let effortValues = Object.values(manualEffort);
-
             let maxEffort = Math.max(...effortValues);
 
-            new Chart(document.getElementById("manualEffortChart"), {
+            // Destroy existing chart instance if it exists
+            if (manualEffortChartInstance) {
+                manualEffortChartInstance.destroy();
+            }
+
+            manualEffortChartInstance = new Chart(document.getElementById("manualEffortChart"), {
                 type: "bar",
                 data: {
                     labels: toolNames,
@@ -415,7 +528,7 @@ function setupTableSorting() {
             });
         }
 
-        function renderStackedBarChart(toolUsage, dateUsage) {
+        function renderStackedBarChart(toolUsage) {
             let toolNames = Object.keys(toolUsage);
             const tagNames = [...new Set(toolNames.flatMap(tool => Object.keys(toolUsage[tool])))];
             const datasets = tagNames.map((tag, index) => ({
@@ -425,7 +538,12 @@ function setupTableSorting() {
             }));
 
             const stackedBarCanvas = document.getElementById("stackedBarChart");
-            new Chart(stackedBarCanvas, {
+            
+            // Destroy existing chart instance if it exists
+            if (stackedBarChartInstance) {
+                stackedBarChartInstance.destroy();
+            }
+            stackedBarChartInstance = new Chart(stackedBarCanvas, {
                 type: "bar",
                 data: { labels: toolNames, datasets },
                 options: {
@@ -458,6 +576,7 @@ function setupTableSorting() {
             });
         }
 
+        // Update the renderToolUsageOverTimeChart function
         function renderToolUsageOverTimeChart(dateUsage, toolNames) {
             let sortedDates = Object.keys(dateUsage).sort();
 
@@ -474,7 +593,11 @@ function setupTableSorting() {
             }));
 
             const toolUsageOverTimeCanvas = document.getElementById("toolUsageOverTime");
-            new Chart(toolUsageOverTimeCanvas, {
+            // Destroy existing chart instance if it exists
+            if (toolUsageChartInstance) {
+                toolUsageChartInstance.destroy();
+            }
+            toolUsageChartInstance = new Chart(toolUsageOverTimeCanvas, {
                 type: "line",
                 data: {
                     labels: sortedDates,
@@ -510,53 +633,21 @@ function setupTableSorting() {
             });
         }
 
-        function renderCharts(toolUsage) {
-            renderStackedBarChart(toolUsage, dateUsage);
+        function renderCharts(toolUsage, dateUsage) {
+            renderStackedBarChart(toolUsage);
             renderToolUsageOverTimeChart(dateUsage, Object.keys(toolUsage));
         }
 
-        function setupTableFiltering() {
-            const requestTable = document.getElementById('requestTable');
-            const filterToolInput = document.getElementById('filterTool');
-            const filterProjectIDInput = document.getElementById('filterProjectID');
-            const filterProjectTagInput = document.getElementById('filterProjectTag');
-            const filterButton = document.getElementById('filterButton');
-            const tableBody = requestTable.querySelector('tbody');
-            const rows = Array.from(tableBody.querySelectorAll('tr'));
-
-            filterButton.addEventListener('click', filterTable);
-
-            function filterTable() {
-                const toolFilter = filterToolInput.value;
-                const projectIDFilter = filterProjectIDInput.value.toLowerCase();
-                const projectTagFilter = filterProjectTagInput.value;
-
-                rows.forEach(row => {
-                    const toolCell = row.cells[0].textContent;
-                    const projectIDCell = row.cells[2].textContent.toLowerCase();
-                    const projectTagCell = row.cells[3].textContent;
-                    const matchesTool = !toolFilter || toolFilter === "" || toolCell === toolFilter;
-                    const matchesProjectID = !projectIDFilter || projectIDCell.includes(projectIDFilter);
-                    const matchesProjectTag = !projectTagFilter || projectTagFilter === "" || projectTagCell === projectTagFilter;
-
-                    if (matchesTool && matchesProjectID && matchesProjectTag) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
-    loadRequests();
-    setupTableSorting();
-    sortTable(4); // Sort by Date (index 4) initially
-    const dateArrowSpan = document.getElementById(`sortArrow-4`);
-    if (dateArrowSpan) {
-        dateArrowSpan.textContent = '▼'; // Show descending arrow for Date
-    }
-});
+            loadRequests(); // Initial load without date filter
+            setupTableSorting();
+            
+            // Initially sort by Date (descending)
+            const dateHeader = document.getElementById('sortArrow-4');
+            if (dateHeader) {
+                dateHeader.textContent = '▼';
+            }
+        });
     </script>
 </body>
 </html>
