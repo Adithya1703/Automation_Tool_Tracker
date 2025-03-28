@@ -3,41 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Automation Tool Tracker</title>
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f4f4f4;
         }
+
         .container {
-            width: 50%;
-            margin: auto;
+            max-width: 600px;
+            margin: 40px auto;
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
         h2 {
             text-align: center;
+            color: #333;
+            margin-bottom: 20px;
         }
-        label {
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group label {
+            flex: 1;
             font-weight: bold;
+            text-align: right;
         }
-        select, input, button {
-            width: 100%;
+
+        .form-group input,
+        .form-group select {
+            flex: 2;
             padding: 10px;
-            margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
+            font-size: 14px;
         }
+
         button {
+            width: 100%;
+            padding: 10px;
             background-color: #007bff;
             color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 90%;
+                padding: 15px;
+            }
+
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .form-group label {
+                text-align: left;
+                margin-bottom: 5px;
+            }
         }
     </style>
 </head>
@@ -45,10 +109,14 @@
     <div class="container">
         <h2>Admin Login</h2>
         <form id="adminLoginForm">
-            <label for="adminEmail">Email:</label>
-            <input type="email" id="adminEmail" required>
-            <label for="adminPassword">Password:</label>
-            <input type="password" id="adminPassword" required>
+            <div class="form-group">
+                <label for="adminEmail">Email:</label>
+                <input type="email" id="adminEmail" aria-label="Admin Email" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+                <label for="adminPassword">Password:</label>
+                <input type="password" id="adminPassword" aria-label="Admin Password" placeholder="Enter your password" required>
+            </div>
             <button type="submit">Login</button>
         </form>
     </div>
@@ -56,96 +124,121 @@
     <div class="container">
         <h2>Automation Tool Request</h2>
         <form id="requestForm">
-            <label for="tool">Select Tool:</label>
-            <select id="tool" required>
-              <option value="190A_response_Validation">190A_response_Validation</option>
-              <option value="Create_WorkItems(including_epics)_xml_Azure">Create_WorkItems(including_epics)_xml_Azure</option>
-              <option value="Create_workitems_xml_AzureBoards">Create_workitems_xml_AzureBoards</option>
-              <option value="DBC_extract">DBC_extract</option>
-              <option value="DBC_Old_New_Compare_with_A2l_Labels">DBC_Old_New_Compare_with_A2l_Labels</option>
-              <option value="DIDs_Response_Extract_AscLog">DIDs_Response_Extract_AscLog</option>
-              <option value="DLC_Extract_Response_Excel">DLC_Extract_Response_Excel</option>
-              <option value="LimpIn_Validation_Selenium">LimpIn_Validation_Selenium</option>
-              <option value="DTC_Validation">DTC_Validation</option>
-              <option value="search_Files_(Timestampbased)_moveTO_newFolder">search_Files_(Timestampbased)_moveTO_newFolde</option>
-              <option value="Supported_DIDs_Sessions_Extract">Supported_DIDs_Sessions_Extract</option>
-              <option value="ZipFile_ExtractCompress">ZipFile_ExtractCompress</option>
-            </select>
-            <label for="name">Your Name:</label>
-            <input type="text" id="name" required>
-            <label for="projectId">Project ID:</label>
-            <input type="text" id="projectId" required>
-            <label for="projectTag">Project Tag:</label>
-            <select id="projectTag" required>
-              <option value="PT71">PT71</option>
-              <option value="FCME">FCME</option>
-              <option value="FCPJ">FCPJ</option>
-              <option value="FC06">FC06</option>
-              <option value="IVECO">IVECO</option>
-              <option value="PKQA">PKQA</option>
-            </select>
-            <label for="date">Request Date:</label>
-            <input type="date" id="date" required>
-            <label for="Comment">Provide Input Comments:</label>
-            <!-- New Manual Effort Input Field -->
-            <label for="manualEffort">Manual Effort (Hours):</label>
-            <input type="number" id="manualEffort" min="0" step="0.5" placeholder="Enter hours manually spent" required>
-            <input type="text" id="Comment" placeholder="Enter all details required to run automation like path etc." required>
+            <div class="form-group">
+                <label for="tool">Select Tool:</label>
+                <select id="tool" aria-label="Select Tool" required>
+                    <option value="190A_response_Validation">190A_response_Validation</option>
+                    <option value="Create_WorkItems(including_epics)_xml_Azure">Create_WorkItems(including_epics)_xml_Azure</option>
+                    <option value="Create_workitems_xml_AzureBoards">Create_workitems_xml_AzureBoards</option>
+                    <option value="DBC_extract">DBC_extract</option>
+                    <option value="DBC_Old_New_Compare_with_A2l_Labels">DBC_Old_New_Compare_with_A2l_Labels</option>
+                    <option value="DIDs_Response_Extract_AscLog">DIDs_Response_Extract_AscLog</option>
+                    <option value="DLC_Extract_Response_Excel">DLC_Extract_Response_Excel</option>
+                    <option value="LimpIn_Validation_Selenium">LimpIn_Validation_Selenium</option>
+                    <option value="DTC_Validation">DTC_Validation</option>
+                    <option value="search_Files_(Timestampbased)_moveTO_newFolder">search_Files_(Timestampbased)_moveTO_newFolder</option>
+                    <option value="Supported_DIDs_Sessions_Extract">Supported_DIDs_Sessions_Extract</option>
+                    <option value="ZipFile_ExtractCompress">ZipFile_ExtractCompress</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="name">Your Name:</label>
+                <input type="text" id="name" aria-label="Your Name" placeholder="Enter your name" required>
+            </div>
+            <div class="form-group">
+                <label for="projectId">Project ID:</label>
+                <input type="text" id="projectId" aria-label="Project ID" placeholder="Enter your project ID" required>
+            </div>
+            <div class="form-group">
+                <label for="projectTag">Project Tag:</label>
+                <select id="projectTag" aria-label="Project Tag" required>
+                    <option value="PT71">PT71</option>
+                    <option value="FCME">FCME</option>
+                    <option value="FCPJ">FCPJ</option>
+                    <option value="FC06">FC06</option>
+                    <option value="IVECO">IVECO</option>
+                    <option value="PKQA">PKQA</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="date">Request Date:</label>
+                <input type="date" id="date" aria-label="Request Date" required>
+            </div>
+            <div class="form-group">
+                <label for="manualEffort">Manual Effort (Hours):</label>
+                <input type="number" id="manualEffort" min="0" step="0.5" placeholder="Enter hours manually spent" aria-label="Manual Effort" required>
+            </div>
+            <div class="form-group">
+                <label for="Comment">Provide Input Comments:</label>
+                <input type="text" id="Comment" placeholder="Enter details required to run automation" aria-label="Input Comments" required>
+            </div>
+            <div id="loading">Submitting...</div>
             <button type="submit">Submit Request</button>
         </form>
     </div>
 
     <script>
-      //import { initializeApp } from "firebase/app";
-      //import { getAnalytics } from "firebase/analytics";
-      const firebaseConfig = {
-  apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
-  authDomain: "automation-tools-usage.firebaseapp.com",
-  projectId: "automation-tools-usage",
-  storageBucket: "automation-tools-usage.firebasestorage.app",
-  messagingSenderId: "883352092535",
-  appId: "1:883352092535:web:0c9dd2712b5d42b345ab72",
-  measurementId: "G-7T17NS1Z7X"
-};
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
+            authDomain: "automation-tools-usage.firebaseapp.com",
+            projectId: "automation-tools-usage",
+            storageBucket: "automation-tools-usage.firebasestorage.app",
+            messagingSenderId: "883352092535",
+            appId: "1:883352092535:web:0c9dd2712b5d42b345ab72",
+            measurementId: "G-7T17NS1Z7X"
+        };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-        console.log(firebase ? "Firebase Loaded Successfully!" : "Firebase Failed to Load");
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Admin Login
         document.getElementById("adminLoginForm").addEventListener("submit", function(event) {
             event.preventDefault();
-            let email = document.getElementById("adminEmail").value;
-            let password = document.getElementById("adminPassword").value;
-            
-            auth.signInWithEmailAndPassword(email, password)
-    .then(user => {
-        console.log("Login successful:", user);
-        window.location.href = "admin.html";
-    })
-    .catch(error => {
-        console.error("Login failed:", error.message);
-        alert("Login failed: " + error.message);
-    });
+            const email = document.getElementById("adminEmail").value;
+            const password = document.getElementById("adminPassword").value;
 
+            auth.signInWithEmailAndPassword(email, password)
+                .then(user => {
+                    console.log("Login successful:", user);
+                    window.location.href = "admin.html";
+                })
+                .catch(error => {
+                    console.error("Login failed:", error.message);
+                    alert("Login failed: " + error.message);
+                });
         });
 
+        // Submit Request Form
         document.getElementById("requestForm").addEventListener("submit", function(event) {
             event.preventDefault();
-            let tool = document.getElementById("tool").value;
-            let name = document.getElementById("name").value;
-            let projectId = document.getElementById("projectId").value;
-            let projectTag = document.getElementById("projectTag").value;
-            let date = document.getElementById("date").value;
-            let manualEffort = document.getElementById("manualEffort").value;
-            let Comment = document.getElementById("Comment").value;
-            
+            const tool = document.getElementById("tool").value;
+            const name = document.getElementById("name").value;
+            const projectId = document.getElementById("projectId").value;
+            const projectTag = document.getElementById("projectTag").value;
+            const date = document.getElementById("date").value;
+            const manualEffort = document.getElementById("manualEffort").value;
+            const Comment = document.getElementById("Comment").value;
+
+            if (!tool || !name || !projectId || !projectTag || !date || !manualEffort || !Comment) {
+                alert("Please fill out all fields.");
+                return;
+            }
+
+            document.getElementById("loading").style.display = "block";
+
             db.collection("requests").add({ tool, name, projectId, projectTag, date, manualEffort, Comment })
                 .then(() => {
+                    document.getElementById("loading").style.display = "none";
                     alert("Request submitted successfully!");
                     document.getElementById("requestForm").reset();
                 })
-                .catch(error => alert("Error: " + error.message));
+                .catch(error => {
+                    document.getElementById("loading").style.display = "none";
+                    alert("Error: " + error.message);
+                });
         });
     </script>
 </body>
