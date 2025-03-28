@@ -6,7 +6,7 @@
     <title>Admin Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -15,6 +15,7 @@
             background-color: #f4f4f4;
             text-align: center;
         }
+
         .container {
             width: 90%;
             max-width: 1200px;
@@ -23,58 +24,155 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            overflow-x: auto;
         }
+
         h2 {
             text-align: center;
+            margin-bottom: 20px;
         }
+
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .summary-item {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
         .table-wrapper {
             width: 100%;
             overflow-x: auto;
+            margin-bottom: 30px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            white-space: nowrap;
         }
+
         th, td {
             padding: 10px;
             border: 1px solid #ccc;
             text-align: left;
         }
+
         th {
             background-color: #007bff;
             color: white;
         }
+
         .charts-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-around;
-            margin-top: 30px;
-        }
-        .charts-container_2 {
-            display: flex;
-            flex-wrap: wrap;
             justify-content: center;
+            gap: 30px;
             margin-top: 30px;
         }
+
         .chart-box {
-            width: 45%;
-            max-width: 500px;
+            width: 100%;
+            max-width: 600px;
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+
+        .chart-box canvas {
+            max-height: 400px;
+        }
+
+        @media (max-width: 768px) {
+            .chart-box {
+                max-width: 100%; /* Full width on smaller screens */
+            }
+        }
+
+        .filter-container {
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* Ensures equal width columns */
+    align-items: bottom; /* Align items at the start */
+    gap: 10px;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-label {
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: inherit;
+    box-sizing: border-box; /* Ensures padding is included in the element's total width and height */
+}
+
+.filter-button {
+    padding: 6px 12px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    font-size: inherit;
+    height: 36px;
+    align-self: bottom; /* Center the button vertically within its grid cell */
+    margin-top: auto; /* Push the button to the bottom of its grid cell */
+}
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Admin Dashboard</h2>
 
+        <div class="summary">
+            <div class="summary-item" id="totalEffortSummary">Total Effort: Loading...</div>
+            <div class="summary-item" id="totalToolsSummary">Total Tools: Loading...</div>
+        </div>
+
         <h3>Tool Requests</h3>
         <div class="table-wrapper">
+            <div class="filter-container">
+                <div class="filter-item">
+                    <label for="filterTool" class="filter-label" id="filterTool-label">Filter Tool:</label>
+                    <select id="filterTool" class="filter-input">
+                        <option value="">All Tools</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label for="filterProjectID" class="filter-label" id="filterProjectID-label">Filter Project ID:</label>
+                    <input type="text" id="filterProjectID" placeholder="Enter project ID" class="filter-input">
+                </div>
+                
+                <div class="filter-item">
+                    <label for="filterProjectTag" class="filter-label" id="filterProjectTag-label">Filter Project Tag:</label>
+                    <select id="filterProjectTag" class="filter-input">
+                        <option value="">All Tags</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <button id="filterButton" class="filter-button">Filter</button>
+                </div>
+            </div>
             <table id="requestTable">
                 <thead>
                     <tr>
@@ -88,86 +186,122 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="7">Loading...</td></tr>
+                    <tr><td colspan="7">Loading data...</td></tr>
                 </tbody>
             </table>
         </div>
 
-        <h3>Manual Effort Saved Per Tool</h3>
-        <div class="charts-container_2">
-            <div class="chart-box">
-                <canvas id="manualEffortChart"></canvas>
-            </div>
-        </div>
-
-        <div class="container">
-            <h3>Total Manual Effort Saved</h3>
-            <p id="totalEffort">Loading...</p>
-        </div>
-
-        <h3>Tool Usage Statistics</h3>
+        <h3>Charts</h3>
         <div class="charts-container">
             <div class="chart-box">
-                <canvas id="stackedBarChart"></canvas>
+                <p><b>Total Manual Effort Saved per Tool:</b> This chart displays the total manual effort (in hours) saved by using each tool.</p>
+                <canvas id="manualEffortChart">Loading chart...</canvas>
             </div>
             <div class="chart-box">
-                <canvas id="toolUsageOverTime"></canvas>
+                <p><b>Tool Usage by Project Tag:</b> This chart shows how many times each tool has been used, broken down by the project tag.</p>
+                <canvas id="stackedBarChart">Loading chart...</canvas>
+            </div>
+            <div class="chart-box">
+                <p><b>Tool Usage Over Time:</b> This chart illustrates the trend of tool usage over the dates when the requests were made.</p>
+                <canvas id="toolUsageOverTime">Loading chart...</canvas>
             </div>
         </div>
     </div>
 
     <script>
-        //import { initializeApp } from "firebase/app";
-        //import { getAnalytics } from "firebase/analytics";
         const firebaseConfig = {
-  apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
-  authDomain: "automation-tools-usage.firebaseapp.com",
-  projectId: "automation-tools-usage",
-  storageBucket: "automation-tools-usage.firebasestorage.app",
-  messagingSenderId: "883352092535",
-  appId: "1:883352092535:web:0c9dd2712b5d42b345ab72",
-  measurementId: "G-7T17NS1Z7X"
-};
+            apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
+            authDomain: "automation-tools-usage.firebaseapp.com",
+            projectId: "automation-tools-usage",
+            storageBucket: "automation-tools-usage.firebasestorage.app",
+            messagingSenderId: "883352092535",
+            appId: "1:883352092535:web:0c9dd2712b5d42b345ab72",
+            measurementId: "G-7T17NS1Z7X"
+        };
         firebase.initializeApp(firebaseConfig);
-        console.log(firebase ? "Firebase Loaded Successfully!" : "Firebase Failed to Load");
-        const auth = firebase.auth();
         const db = firebase.firestore();
 
+        let dateUsage = {}; // Declare dateUsage in the script scope
+        const colorPalette = [
+            "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40", "#C9CBCF"
+        ];
+
         function loadRequests() {
-            db.collection("requests").get().then(snapshot => {
-                let tableBody = document.querySelector("#requestTable tbody");
-                tableBody.innerHTML = "";
-                let toolUsage = {};
-                let dateUsage = {};
-                let manualEffort = {};
-                snapshot.forEach(doc => {
-                    let data = doc.data();
-                    let row = `<tr>
-                        <td>${data.tool}</td>
-                        <td>${data.name}</td>
-                        <td>${data.projectId}</td>
-                        <td>${data.projectTag}</td>
-                        <td>${data.date}</td>
-                        <td>${data.manualEffort || 0}</td>
-                        <td>${data.Comment || ''}</td>
-                    </tr>`;
-                    tableBody.innerHTML += row;
-                    if (!toolUsage[data.tool]) toolUsage[data.tool] = {};
-                    toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
-                    let dateKey = new Date(data.date).toISOString().split("T")[0];
-                    if (!dateUsage[dateKey]) dateUsage[dateKey] = {};
-                    dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
-                    if (!manualEffort[data.tool]) manualEffort[data.tool] = 0;
-                    manualEffort[data.tool] += Number(data.manualEffort) || 0;
+            db.collection("requests").get()
+                .then(snapshot => {
+                    let tableBody = document.querySelector("#requestTable tbody");
+                    tableBody.innerHTML = ""; // Clear existing rows
+
+                    let toolUsage = {};
+                    let manualEffort = {};
+                    let totalEffort = 0;
+                    const uniqueTools = new Set();
+                    const uniqueTags = new Set();
+
+                    snapshot.forEach(doc => {
+                        let data = doc.data();
+                        const row = tableBody.insertRow();
+
+                        const formattedDate = new Date(data.date).toLocaleDateString();
+                        let dateKey = new Date(data.date).toISOString().split("T")[0];
+                        dateUsage[dateKey] = dateUsage[dateKey] || {};
+                        dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
+
+                        row.insertCell().textContent = data.tool;
+                        row.insertCell().textContent = data.name;
+                        row.insertCell().textContent = data.projectId;
+                        row.insertCell().textContent = data.projectTag;
+                        row.insertCell().textContent = formattedDate;
+                        row.insertCell().textContent = data.manualEffort !== undefined ? parseFloat(data.manualEffort).toFixed(2) : 'N/A';
+                        const commentCell = row.insertCell();
+                        commentCell.textContent = data.Comment || '';
+
+                        toolUsage[data.tool] = toolUsage[data.tool] || {};
+                        toolUsage[data.tool][data.projectTag] = (toolUsage[data.tool][data.projectTag] || 0) + 1;
+
+                        manualEffort[data.tool] = (manualEffort[data.tool] || 0) + (Number(data.manualEffort) || 0);
+                        totalEffort += Number(data.manualEffort) || 0;
+
+                        uniqueTools.add(data.tool);
+                        uniqueTags.add(data.projectTag);
+                    });
+
+                    document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
+                    document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
+
+                    const filterToolSelect = document.getElementById('filterTool');
+                    uniqueTools.forEach(tool => {
+                        const option = document.createElement('option');
+                        option.value = tool;
+                        option.textContent = tool;
+                        filterToolSelect.appendChild(option);
+                    });
+
+                    const filterTagSelect = document.getElementById('filterProjectTag');
+                    uniqueTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag;
+                        option.textContent = tag;
+                        filterTagSelect.appendChild(option);
+                    });
+
+                    renderCharts(toolUsage);
+                    renderManualEffortChart(manualEffort);
+                    setupTableFiltering(); // Call the function to set up filtering
+                })
+                .catch(error => {
+                    console.error("Error loading requests:", error);
+                    document.querySelector("#requestTable tbody").innerHTML = `
+                        <tr><td colspan="7">Error loading data!</td></tr>
+                    `;
                 });
-                renderCharts(toolUsage, dateUsage);
-                renderManualEffortChart(manualEffort);
-            });
         }
 
         function renderManualEffortChart(manualEffort) {
             let toolNames = Object.keys(manualEffort);
             let effortValues = Object.values(manualEffort);
+
+            let maxEffort = Math.max(...effortValues);
 
             new Chart(document.getElementById("manualEffortChart"), {
                 type: "bar",
@@ -176,67 +310,177 @@
                     datasets: [{
                         label: "Manual Effort Saved (Hours)",
                         data: effortValues,
-                        backgroundColor: "#36A2EB"
+                        backgroundColor: colorPalette.slice(0, toolNames.length)
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: { enabled: true, callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' Hours';
+                                }
+                                return label;
+                            }
+                        }},
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: maxEffort + 10,
+                            title: { display: true, text: "Effort (Hours)" }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Total Manual Effort Saved per Tool'
+                    }
                 }
             });
         }
 
-        function renderCharts(toolUsage, dateUsage) {
+        function renderStackedBarChart(toolUsage, dateUsage) {
             let toolNames = Object.keys(toolUsage);
-            let tagNames = [...new Set([].concat(...toolNames.map(tool => Object.keys(toolUsage[tool]))))];
-            let datasets = tagNames.map(tag => ({
+            const tagNames = [...new Set(toolNames.flatMap(tool => Object.keys(toolUsage[tool])))];
+            const datasets = tagNames.map((tag, index) => ({
                 label: tag,
                 data: toolNames.map(tool => toolUsage[tool][tag] || 0),
-                backgroundColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                backgroundColor: colorPalette[index % colorPalette.length]
             }));
-            new Chart(document.getElementById("stackedBarChart"), {
+
+            const stackedBarCanvas = document.getElementById("stackedBarChart");
+            new Chart(stackedBarCanvas, {
                 type: "bar",
                 data: { labels: toolNames, datasets },
-                options: { scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
-            });
-            let sortedDates = Object.keys(dateUsage).sort();
-            let tools = [...new Set([].concat(...sortedDates.map(date => Object.keys(dateUsage[date]))))];
-            let lineDatasets = tools.map(tool => ({
-                label: tool,
-                data: sortedDates.map(date => dateUsage[date][tool] || 0),
-                borderColor: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-                fill: false
-            }));
-            new Chart(document.getElementById("toolUsageOverTime"), {
-                type: "line",
-                data: { labels: sortedDates, datasets: lineDatasets },
-                options: { scales: { x: { title: { display: true, text: "Date" } }, y: { beginAtZero: true } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: { enabled: true, callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' Times';
+                                }
+                                return label;
+                            }
+                        }},
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Number of Times Used' } }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Tool Usage by Project Tag'
+                    }
+                }
             });
         }
 
-        document.addEventListener("DOMContentLoaded", loadRequests);
-        document.addEventListener("DOMContentLoaded", function() {
-    const totalEffortElement = document.getElementById("totalEffort");
+        function renderToolUsageOverTimeChart(dateUsage, toolNames) {
+            let sortedDates = Object.keys(dateUsage).sort();
 
-    db.collection("requests").get().then((querySnapshot) => {
-        let totalEffort = 0;
-        
-        querySnapshot.forEach((doc) => {
-            let data = doc.data();
-            if (data.manualEffort) {
-                totalEffort += parseFloat(data.manualEffort);
+            if (sortedDates.length === 0) {
+                console.error("No date data available for rendering tool usage over time chart.");
+                return;
             }
-        });
 
-        totalEffortElement.textContent = `Total Hours Saved using all tools: ${totalEffort.toFixed(2)} hours`;
-    })
-    .catch(error => {
-        console.error("Error fetching total manual effort:", error);
-        totalEffortElement.textContent = "Error loading data!";
-    });
-});
+            let lineDatasets = toolNames.map((tool, index) => ({
+                label: tool,
+                data: sortedDates.map(date => dateUsage[date]?.[tool] || 0),
+                borderColor: colorPalette[index % colorPalette.length],
+                fill: false
+            }));
+
+            const toolUsageOverTimeCanvas = document.getElementById("toolUsageOverTime");
+            new Chart(toolUsageOverTimeCanvas, {
+                type: "line",
+                data: {
+                    labels: sortedDates,
+                    datasets: lineDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: { enabled: true, callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' Times';
+                                }
+                                return label;
+                            }
+                        }},
+                    },
+                    scales: {
+                        x: { title: { display: true, text: "Date" } },
+                        y: { beginAtZero: true, title: { display: true, text: "Number of Times Used" } }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Tool Usage Over Time'
+                    }
+                }
+            });
+        }
+
+        function renderCharts(toolUsage) {
+            renderStackedBarChart(toolUsage, dateUsage);
+            renderToolUsageOverTimeChart(dateUsage, Object.keys(toolUsage));
+        }
+
+        function setupTableFiltering() {
+            const requestTable = document.getElementById('requestTable');
+            const filterToolInput = document.getElementById('filterTool');
+            const filterProjectIDInput = document.getElementById('filterProjectID');
+            const filterProjectTagInput = document.getElementById('filterProjectTag');
+            const filterButton = document.getElementById('filterButton');
+            const tableBody = requestTable.querySelector('tbody');
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+            filterButton.addEventListener('click', filterTable);
+
+            function filterTable() {
+                const toolFilter = filterToolInput.value;
+                const projectIDFilter = filterProjectIDInput.value.toLowerCase();
+                const projectTagFilter = filterProjectTagInput.value;
+
+                rows.forEach(row => {
+                    const toolCell = row.cells[0].textContent;
+                    const projectIDCell = row.cells[2].textContent.toLowerCase();
+                    const projectTagCell = row.cells[3].textContent;
+                    const matchesTool = !toolFilter || toolFilter === "" || toolCell === toolFilter;
+                    const matchesProjectID = !projectIDFilter || projectIDCell.includes(projectIDFilter);
+                    const matchesProjectTag = !projectTagFilter || projectTagFilter === "" || projectTagCell === projectTagFilter;
+
+                    if (matchesTool && matchesProjectID && matchesProjectTag) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadRequests);
     </script>
-    <button onclick="window.location.href='index.html'">Go to Home Page</button>
 </body>
 </html>
