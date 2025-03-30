@@ -93,72 +93,50 @@
 
         @media (max-width: 768px) {
             .chart-box {
-                max-width: 100%;
-            }
-
-            .filter-container {
-                grid-template-columns: 1fr !important;
+                max-width: 100%; /* Full width on smaller screens */
             }
         }
 
         .filter-container {
-            margin-bottom: 10px;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            align-items: end;
-            gap: 10px;
-        }
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* Ensures equal width columns */
+    align-items: bottom; /* Align items at the start */
+    gap: 10px;
+}
 
-        .filter-item {
-            display: flex;
-            flex-direction: column;
-        }
+.filter-item {
+    display: flex;
+    flex-direction: column;
+}
 
-        .filter-label {
-            line-height: 1;
-            margin-bottom: 4px;
-        }
+.filter-label {
+    line-height: 1;
+    margin-bottom: 4px;
+}
 
-        .filter-input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: inherit;
-            box-sizing: border-box;
-        }
+.filter-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: inherit;
+    box-sizing: border-box; /* Ensures padding is included in the element's total width and height */
+}
 
-        .filter-button {
-            padding: 6px 12px;
-            border: 1px solid #007bff;
-            border-radius: 4px;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            font-size: inherit;
-            height: 36px;
-            align-self: end;
-            margin-top: auto;
-        }
-
-        .date-range-container {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .date-range-inputs {
-            display: flex;
-            gap: 10px;
-        }
-
-        .date-input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: inherit;
-            box-sizing: border-box;
-        }
+.filter-button {
+    padding: 6px 12px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    font-size: inherit;
+    height: 36px;
+    align-self: bottom; /* Center the button vertically within its grid cell */
+    margin-top: auto; /* Push the button to the bottom of its grid cell */
+    justify-self: center;
+}
     </style>
 </head>
 <body>
@@ -174,30 +152,32 @@
         <div class="table-wrapper">
             <div class="filter-container">
                 <div class="filter-item">
-                    <label for="filterTool" class="filter-label">Filter Tool:</label>
+                    <label for="filterTool" class="filter-label" id="filterTool-label">Filter Tool:</label>
                     <select id="filterTool" class="filter-input">
                         <option value="">All Tools</option>
                     </select>
                 </div>
                 
                 <div class="filter-item">
-                    <label for="filterProjectID" class="filter-label">Filter Project ID:</label>
+                    <label for="filterProjectID" class="filter-label" id="filterProjectID-label">Filter Project ID:</label>
                     <input type="text" id="filterProjectID" placeholder="Enter project ID" class="filter-input">
                 </div>
                 
                 <div class="filter-item">
-                    <label for="filterProjectTag" class="filter-label">Filter Project Tag:</label>
+                    <label for="filterProjectTag" class="filter-label" id="filterProjectTag-label">Filter Project Tag:</label>
                     <select id="filterProjectTag" class="filter-input">
                         <option value="">All Tags</option>
                     </select>
                 </div>
-                
-                <div class="filter-item date-range-container">
-                    <label class="filter-label">Date Range:</label>
-                    <div class="date-range-inputs">
-                        <input type="date" id="startDate" class="filter-input date-input" placeholder="Start Date">
-                        <input type="date" id="endDate" class="filter-input date-input" placeholder="End Date">
-                    </div>
+
+                <div class="filter-item">
+                    <label for="filterStartDate" class="filter-label">Start Date:</label>
+                    <input type="date" id="filterStartDate" class="filter-input">
+                </div>
+            
+                <div class="filter-item">
+                    <label for="filterEndDate" class="filter-label">End Date:</label>
+                    <input type="date" id="filterEndDate" class="filter-input">
                 </div>
                 
                 <div class="filter-item">
@@ -207,12 +187,12 @@
             <table id="requestTable">
                 <thead>
                     <tr>
-                        <th style="cursor: pointer;">Tool <span id="sortArrow-0"></span></th>
-                        <th style="cursor: pointer;">Name <span id="sortArrow-1"></span></th>
-                        <th style="cursor: pointer;">Project ID <span id="sortArrow-2"></span></th>
-                        <th style="cursor: pointer;">Project Tag <span id="sortArrow-3"></span></th>
-                        <th style="cursor: pointer;">Date <span id="sortArrow-4"></span></th>
-                        <th style="cursor: pointer;">Manual Effort (Hours) <span id="sortArrow-5"></span></th>
+                        <th>Tool</th>
+                        <th>Name</th>
+                        <th>Project ID</th>
+                        <th>Project Tag</th>
+                        <th>Date</th>
+                        <th>Manual Effort (Hours)</th>
                         <th>Comment</th>
                     </tr>
                 </thead>
@@ -240,11 +220,6 @@
     </div>
 
     <script>
-        // Add these variables at the top of your script section, after the colorPalette definition
-        let manualEffortChartInstance = null;
-        let stackedBarChartInstance = null;
-        let toolUsageChartInstance = null;
-        // Firebase Configuration (Replace with your actual configuration)
         const firebaseConfig = {
             apiKey: "AIzaSyAK5uMgWQSxTzqNZ-jsv1CIOG8vFaOudic",
             authDomain: "automation-tools-usage.firebaseapp.com",
@@ -257,47 +232,29 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        let dateUsage = {}; // Declare dateUsage in the script scope
         const colorPalette = [
             "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40", "#C9CBCF"
         ];
 
-        function loadRequests(startDate = null, endDate = null) {
-            let query = db.collection("requests");
-
-            // Apply date range filtering if dates are provided
-            if (startDate && endDate) {
-                query = query
-                    .where('date', '>=', startDate.toISOString())
-                    .where('date', '<=', endDate.toISOString());
-            }
-
-            query.get()
+        function loadRequests() {
+            db.collection("requests").get()
                 .then(snapshot => {
                     let tableBody = document.querySelector("#requestTable tbody");
                     tableBody.innerHTML = ""; // Clear existing rows
 
                     let toolUsage = {};
                     let manualEffort = {};
-                    let dateUsage = {}; // Reset dateUsage for each load
                     let totalEffort = 0;
                     const uniqueTools = new Set();
                     const uniqueTags = new Set();
 
                     snapshot.forEach(doc => {
                         let data = doc.data();
-                        const docDate = new Date(data.date);
-
-                        // Additional date range validation
-                        if ((startDate && docDate < startDate) || 
-                            (endDate && docDate > endDate)) {
-                            return; // Skip this document
-                        }
-
                         const row = tableBody.insertRow();
-                        const formattedDate = docDate.toLocaleDateString();
-                        let dateKey = docDate.toISOString().split("T")[0];
 
-                        // Track date usage
+                        const formattedDate = new Date(data.date).toLocaleDateString();
+                        let dateKey = new Date(data.date).toISOString().split("T")[0];
                         dateUsage[dateKey] = dateUsage[dateKey] || {};
                         dateUsage[dateKey][data.tool] = (dateUsage[dateKey][data.tool] || 0) + 1;
 
@@ -320,9 +277,10 @@
                         uniqueTags.add(data.projectTag);
                     });
 
-                    // Populate filter dropdowns
+                    document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
+                    document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
+
                     const filterToolSelect = document.getElementById('filterTool');
-                    filterToolSelect.innerHTML = '<option value="">All Tools</option>';
                     uniqueTools.forEach(tool => {
                         const option = document.createElement('option');
                         option.value = tool;
@@ -331,7 +289,6 @@
                     });
 
                     const filterTagSelect = document.getElementById('filterProjectTag');
-                    filterTagSelect.innerHTML = '<option value="">All Tags</option>';
                     uniqueTags.forEach(tag => {
                         const option = document.createElement('option');
                         option.value = tag;
@@ -339,14 +296,9 @@
                         filterTagSelect.appendChild(option);
                     });
 
-                    // Update summary
-                    document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
-                    document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
-
-                    // Render charts with filtered data
-                    renderCharts(toolUsage, dateUsage);
+                    renderCharts(toolUsage);
                     renderManualEffortChart(manualEffort);
-                    setupTableFiltering(); // Reattach filtering
+                    setupTableFiltering(); // Call the function to set up filtering
                 })
                 .catch(error => {
                     console.error("Error loading requests:", error);
@@ -356,135 +308,13 @@
                 });
         }
 
-        function setupTableFiltering() {
-            const filterButton = document.getElementById('filterButton');
-            const startDateInput = document.getElementById('startDate');
-            const endDateInput = document.getElementById('endDate');
-
-            // Additional filter inputs
-            const filterToolInput = document.getElementById('filterTool');
-            const filterProjectIDInput = document.getElementById('filterProjectID');
-            const filterProjectTagInput = document.getElementById('filterProjectTag');
-            const tableBody = document.querySelector("#requestTable tbody");
-            const rows = Array.from(tableBody.querySelectorAll('tr'));
-
-            filterButton.addEventListener('click', () => {
-                // Get start and end dates
-                const startDateValue = startDateInput.value;
-                const endDateValue = endDateInput.value;
-
-                let startDate = startDateValue ? new Date(startDateValue) : null;
-                let endDate = endDateValue ? new Date(endDateValue) : null;
-
-                // Set time to start of day for start date and end of day for end date
-                if (startDate) startDate.setHours(0, 0, 0, 0);
-                if (endDate) {
-                    endDate.setHours(23, 59, 59, 999);
-                }
-
-                // Reload requests with date range filter
-                loadRequests(startDate, endDate);
-
-                // Additional row filtering based on other inputs
-                const toolFilter = filterToolInput.value;
-                const projectIDFilter = filterProjectIDInput.value.toLowerCase();
-                const projectTagFilter = filterProjectTagInput.value;
-
-                rows.forEach(row => {
-                    const toolCell = row.cells[0].textContent;
-                    const projectIDCell = row.cells[2].textContent.toLowerCase();
-                    const projectTagCell = row.cells[3].textContent;
-                    const matchesTool = !toolFilter || toolFilter === "" || toolCell === toolFilter;
-                    const matchesProjectID = !projectIDFilter || projectIDCell.includes(projectIDFilter);
-                    const matchesProjectTag = !projectTagFilter || projectTagFilter === "" || projectTagCell === projectTagFilter;
-
-                    if (matchesTool && matchesProjectID && matchesProjectTag) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        }
-
-        function setupTableSorting() {
-            const requestTable = document.getElementById('requestTable');
-            const tableHead = requestTable.querySelector('thead');
-            const tableBody = requestTable.querySelector('tbody');
-            const headers = tableHead.querySelectorAll('th');
-
-            const sortDirections = Array.from(headers).map(() => 'asc');
-
-            headers.forEach((header, index) => {
-                header.addEventListener('click', () => {
-                    sortTable(index);
-                });
-            });
-
-            function sortTable(columnIndex) {
-                const rows = Array.from(tableBody.querySelectorAll('tr'));
-                const currentSortDirection = sortDirections[columnIndex];
-                const isNumber = columnIndex === 5; // Manual Effort column
-                const isDate = columnIndex === 4;   // Date column
-
-                const sortedRows = rows.sort((rowA, rowB) => {
-                    const cellA = rowA.cells[columnIndex].textContent.trim();
-                    const cellB = rowB.cells[columnIndex].textContent.trim();
-
-                    let valueA = cellA;
-                    let valueB = cellB;
-
-                    if (isNumber) {
-                        valueA = parseFloat(valueA);
-                        valueB = parseFloat(valueB);
-                    } else if (isDate) {
-                        valueA = new Date(valueA);
-                        valueB = new Date(valueB);
-                    }
-
-                    if (currentSortDirection === 'asc') {
-                        if (valueA < valueB) return -1;
-                        if (valueA > valueB) return 1;
-                        return 0;
-                    } else {
-                        if (valueA < valueB) return 1;
-                        if (valueA > valueB) return -1;
-                        return 0;
-                    }
-                });
-
-                tableBody.innerHTML = '';
-                sortedRows.forEach(row => tableBody.appendChild(row));
-
-                // Toggle sort direction
-                sortDirections[columnIndex] = currentSortDirection === 'asc' ? 'desc' : 'asc';
-
-                // Update sorting arrows
-                headers.forEach((h, i) => {
-                    const arrowSpan = document.getElementById(`sortArrow-${i}`);
-                    if (arrowSpan) {
-                        arrowSpan.textContent = ''; // Clear all arrows
-                    }
-                });
-
-                const currentArrowSpan = document.getElementById(`sortArrow-${columnIndex}`);
-                if (currentArrowSpan) {
-                    currentArrowSpan.textContent = currentSortDirection === 'asc' ? '▲' : '▼'; // Up for asc, Down for desc
-                }
-            }
-        }
-
         function renderManualEffortChart(manualEffort) {
             let toolNames = Object.keys(manualEffort);
             let effortValues = Object.values(manualEffort);
+
             let maxEffort = Math.max(...effortValues);
 
-            // Destroy existing chart instance if it exists
-            if (manualEffortChartInstance) {
-                manualEffortChartInstance.destroy();
-            }
-
-            manualEffortChartInstance = new Chart(document.getElementById("manualEffortChart"), {
+            new Chart(document.getElementById("manualEffortChart"), {
                 type: "bar",
                 data: {
                     labels: toolNames,
@@ -528,7 +358,7 @@
             });
         }
 
-        function renderStackedBarChart(toolUsage) {
+        function renderStackedBarChart(toolUsage, dateUsage) {
             let toolNames = Object.keys(toolUsage);
             const tagNames = [...new Set(toolNames.flatMap(tool => Object.keys(toolUsage[tool])))];
             const datasets = tagNames.map((tag, index) => ({
@@ -538,12 +368,7 @@
             }));
 
             const stackedBarCanvas = document.getElementById("stackedBarChart");
-            
-            // Destroy existing chart instance if it exists
-            if (stackedBarChartInstance) {
-                stackedBarChartInstance.destroy();
-            }
-            stackedBarChartInstance = new Chart(stackedBarCanvas, {
+            new Chart(stackedBarCanvas, {
                 type: "bar",
                 data: { labels: toolNames, datasets },
                 options: {
@@ -576,7 +401,6 @@
             });
         }
 
-        // Update the renderToolUsageOverTimeChart function
         function renderToolUsageOverTimeChart(dateUsage, toolNames) {
             let sortedDates = Object.keys(dateUsage).sort();
 
@@ -593,11 +417,7 @@
             }));
 
             const toolUsageOverTimeCanvas = document.getElementById("toolUsageOverTime");
-            // Destroy existing chart instance if it exists
-            if (toolUsageChartInstance) {
-                toolUsageChartInstance.destroy();
-            }
-            toolUsageChartInstance = new Chart(toolUsageOverTimeCanvas, {
+            new Chart(toolUsageOverTimeCanvas, {
                 type: "line",
                 data: {
                     labels: sortedDates,
@@ -633,21 +453,90 @@
             });
         }
 
-        function renderCharts(toolUsage, dateUsage) {
-            renderStackedBarChart(toolUsage);
+        function renderCharts(toolUsage) {
+            renderStackedBarChart(toolUsage, dateUsage);
             renderToolUsageOverTimeChart(dateUsage, Object.keys(toolUsage));
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            loadRequests(); // Initial load without date filter
-            setupTableSorting();
-            
-            // Initially sort by Date (descending)
-            const dateHeader = document.getElementById('sortArrow-4');
-            if (dateHeader) {
-                dateHeader.textContent = '▼';
+        function setupTableFiltering() {
+            const requestTable = document.getElementById('requestTable');
+            const filterToolInput = document.getElementById('filterTool');
+            const filterProjectIDInput = document.getElementById('filterProjectID');
+            const filterProjectTagInput = document.getElementById('filterProjectTag');
+            const filterStartDateInput = document.getElementById('filterStartDate'); // Get start date input
+            const filterEndDateInput = document.getElementById('filterEndDate');     // Get end date input
+            const filterButton = document.getElementById('filterButton');
+            const tableBody = requestTable.querySelector('tbody');
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+            filterButton.addEventListener('click', filterTable);
+
+            function filterTable() {
+                const toolFilter = filterToolInput.value;
+                const projectIDFilter = filterProjectIDInput.value.toLowerCase();
+                const projectTagFilter = filterProjectTagInput.value;
+                const startDateFilter = filterStartDateInput.value; // Get start date value
+                const endDateFilter = filterEndDateInput.value;     // Get end date value
+
+                rows.forEach(row => {
+                    const toolCell = row.cells[0].textContent;
+                    const projectIDCell = row.cells[2].textContent.toLowerCase();
+                    const projectTagCell = row.cells[3].textContent;
+                    const dateCell = row.cells[4].textContent; // Get the date cell
+
+                    const matchesTool = !toolFilter || toolFilter === "" || toolCell === toolFilter;
+                    const matchesProjectID = !projectIDFilter || projectIDCell.includes(projectIDFilter);
+                    const matchesProjectTag = !projectTagFilter || projectTagFilter === "" || projectTagCell === projectTagFilter;
+                    
+                    // Date filtering logic
+                    let matchesDate = true;
+                    if (startDateFilter && endDateFilter) {
+                        const rowDate = new Date(dateCell); // Parse the date from the table
+                        const start = new Date(startDateFilter);
+                        const end = new Date(endDateFilter);
+
+                        // Debugging logs
+                        console.log("Row Date:", rowDate);
+                        console.log("Start Date:", start);
+                        console.log("End Date:", end);
+
+                        // Set time to the beginning and end of the day for accurate comparison
+                        start.setHours(0, 0, 0, 0);
+                        end.setHours(23, 59, 59, 999);
+                        matchesDate = rowDate >= start && rowDate <= end;
+                    } else if (startDateFilter) {
+                        const rowDate = new Date(dateCell);
+                        const start = new Date(startDateFilter);
+
+                        // Debugging logs
+                        console.log("Row Date:", rowDate);
+                        console.log("Start Date:", start);
+
+                        start.setHours(0, 0, 0, 0);
+                        matchesDate = rowDate >= start;
+                    } else if (endDateFilter) {
+                        const rowDate = new Date(dateCell);
+                        const end = new Date(endDateFilter);
+
+                        // Debugging logs
+                        console.log("Row Date:", rowDate);
+                        console.log("End Date:", end);
+
+
+                        end.setHours(23, 59, 59, 999);
+                        matchesDate = rowDate <= end;
+                    }
+
+                    if (matchesTool && matchesProjectID && matchesProjectTag && matchesDate) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             }
-        });
+        }
+
+        document.addEventListener("DOMContentLoaded", loadRequests);
     </script>
 </body>
 </html>
