@@ -147,6 +147,48 @@
     margin-top: auto; /* Push the button to the bottom of its grid cell */
     justify-self: center;
 }
+
+/* ... your existing CSS ... */
+
+.detailed-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+    justify-content: center;
+}
+
+.detailed-summary .summary-item {
+    background: #007bff; /* Or any color you prefer */
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center; /* Center the text within the summary item */
+    min-width: 150px; /* Adjust as needed */
+    flex-grow: 1; /* Allow items to grow and take available space */
+}
+
+/* If you want to use a grid layout within the existing summary class */
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.summary .summary-item {
+    background: #007bff;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+}
     </style>
 </head>
 <body>
@@ -154,8 +196,18 @@
         <h2>Admin Dashboard</h2>
 
         <div class="summary">
-            <div class="summary-item" id="totalEffortSummary">Total Effort: Loading...</div>
-            <div class="summary-item" id="totalToolsSummary">Total Tools: Loading...</div>
+            <div class="summary-item" id="totalEffortSummary" title="Total manual effort saved across all tools.">
+                Total Effort Saved: Loading...
+            </div>
+            <div class="summary-item" id="toolUsageSummary" title="Number of unique tools used.">
+                Tools Used: Loading...
+            </div>
+            <div class="summary-item" id="projectRequestsSummary" title="Total number of requests and unique projects.">
+                Requests: Loading...
+            </div>
+            <div class="summary-item" id="uniqueUsersSummary" title="Number of unique users who made requests.">
+                Unique Users: Loading...
+            </div>
         </div>
 
         <h3>Tool Requests</h3>
@@ -264,6 +316,9 @@
                     let totalEffort = 0;
                     const uniqueTools = new Set();
                     const uniqueTags = new Set();
+                    const uniqueProjectIds = new Set(); // To track unique project IDs
+                    const uniqueUsers = new Set(); // To track unique users
+                    const totalRequests = snapshot.size; // Total number of requests
 
                     snapshot.forEach(doc => {
                         let data = doc.data();
@@ -289,14 +344,41 @@
 
                         manualEffort[data.tool] = (manualEffort[data.tool] || 0) + (Number(data.manualEffort) || 0);
                         totalEffort += Number(data.manualEffort) || 0;
-
+                        
+                        uniqueProjectIds.add(data.projectId);
+                        uniqueUsers.add(data.name);
                         uniqueTools.add(data.tool);
                         uniqueTags.add(data.projectTag);
                     });
 
-                    document.getElementById("totalEffortSummary").textContent = `Total Effort: ${totalEffort} Hours`;
-                    document.getElementById("totalToolsSummary").textContent = `Total Tools: ${Object.keys(toolUsage).length}`;
+                    // Calculate the count of unique tools
+                    const usedToolsCount = uniqueTools.size;
 
+                    // Update the summary section in HTML with the new metrics
+                    const totalEffortSummaryElement = document.getElementById("totalEffortSummary");
+                    if (totalEffortSummaryElement) {
+                        totalEffortSummaryElement.textContent = `Total Effort Saved: ${totalEffort} Hours`;
+                    }
+
+                    const totalToolsSummaryElement = document.getElementById("totalToolsSummary");
+                    if (totalToolsSummaryElement) {
+                        totalToolsSummaryElement.textContent = `Used Tools: ${usedToolsCount}`;
+                    }
+
+                    const toolUsageSummaryElement = document.getElementById("toolUsageSummary");
+                    if (toolUsageSummaryElement) {
+                        toolUsageSummaryElement.textContent = `Tools Used: ${usedToolsCount}`;
+                    }
+
+                    const projectRequestsSummaryElement = document.getElementById("projectRequestsSummary");
+                    if (projectRequestsSummaryElement) {
+                        projectRequestsSummaryElement.textContent = `Requests: ${totalRequests} / Projects: ${uniqueProjectIds.size}`;
+                    }
+
+                    const uniqueUsersSummaryElement = document.getElementById("uniqueUsersSummary");
+                    if (uniqueUsersSummaryElement) {
+                        uniqueUsersSummaryElement.textContent = `Unique Users: ${uniqueUsers.size}`;
+                    }
                     const filterToolSelect = document.getElementById('filterTool');
                     uniqueTools.forEach(tool => {
                         const option = document.createElement('option');
@@ -598,7 +680,9 @@
             renderToolUsageOverTimeChart(dateUsage, Object.keys(toolUsage));
         }
 
-        document.addEventListener("DOMContentLoaded", loadRequests);
+        document.addEventListener("DOMContentLoaded", () => {
+            loadRequests();
+        });
     </script>
 </body>
 </html>
